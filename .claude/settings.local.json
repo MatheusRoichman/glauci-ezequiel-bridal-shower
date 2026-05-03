@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk NR<=100 *)",
+      "Bash(awk NR>=600 && NR<=730 *)",
+      "Bash(awk 'NR>=625 && NR<=830' \"C:\\\\Users\\\\roich\\\\dev\\\\roichman\\\\glauci-ezequiel-bridal-shower\\\\index.html\")",
+      "Read(//tmp/**)",
+      "Bash(awk 'NR>=625 && NR<=830 {print NR\": \"length\\($0\\)\" chars\"}' \"C:\\\\Users\\\\roich\\\\dev\\\\roichman\\\\glauci-ezequiel-bridal-shower\\\\index.html\")",
+      "Bash(sort -t: -k2 -n -r)",
+      "Bash(awk NR>=625 && NR<=830 && length\\($0\\) < 500 *)",
+      "Bash(awk NR>=1580 && NR<=1595 *)",
+      "Bash(awk NR>=1010 && NR<=1030 && length\\($0\\) < 500 *)",
+      "Bash(awk NR>=440 && NR<=560 && length\\($0\\) < 500 *)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}
