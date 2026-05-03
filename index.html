@@ -316,9 +316,51 @@ body::before {
   justify-content: center;
   flex-wrap: wrap;
   gap: 6px 28px;
-  padding: 14px 24px;
+  padding: 0 24px 14px;
   max-width: 1100px;
   margin: 0 auto;
+}
+
+.search {
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 16px 24px 10px;
+}
+
+.search__label {
+  display: block;
+  margin-bottom: 8px;
+  font-family: 'Cormorant SC', serif;
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  color: var(--ink-soft);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.search__input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 16px;
+  font: inherit;
+  color: var(--ink-deep);
+  text-align: center;
+  background: rgba(250, 249, 241, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.search__input::placeholder {
+  color: var(--ink-soft);
+  opacity: 0.7;
+}
+
+.search__input:focus {
+  background: rgba(250, 249, 241, 0.96);
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px rgba(87, 101, 73, 0.12);
 }
 
 .nav a {
@@ -411,6 +453,30 @@ body::before {
 }
 
 /* ─── Card ────────────────────────────────────────────────────────── */
+.section[hidden],
+.card[hidden],
+.nav a[hidden] {
+  display: none;
+}
+
+.empty-state {
+  display: none;
+  position: relative;
+  z-index: 1;
+  max-width: 680px;
+  margin: 20px auto 80px;
+  padding: 0 24px;
+  color: var(--ink);
+  font-style: italic;
+  font-size: 18px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.empty-state.is-visible {
+  display: block;
+}
+
 .card {
   position: relative;
   background: rgba(244, 242, 230, 0.55);
@@ -604,7 +670,9 @@ body::before {
   .section__header { flex-direction: column; align-items: flex-start; gap: 16px; }
   .section__title { font-size: 44px; }
   .grid { grid-template-columns: 1fr; gap: 22px; }
-  .nav__inner { gap: 4px 16px; padding: 12px 16px; }
+  .search { padding: 12px 16px 8px; }
+  .search__input { min-height: 44px; }
+  .nav__inner { gap: 4px 16px; padding: 0 16px 12px; }
   .nav a { font-size: 11px; letter-spacing: 0.18em; }
 }
 
@@ -654,7 +722,7 @@ body::before {
 </svg></div>
     <div>
       <div class="detail__label">Quando</div>
-      <div class="detail__value">11 de Julho</div>
+      <div class="detail__value">04 de Julho</div>
       <div class="detail__sub">Sábado, 16h</div>
     </div>
   </div>
@@ -695,11 +763,16 @@ body::before {
   </div>
 </div>
 
-<nav class="nav" aria-label="Categorias">
+<nav class="nav" aria-label="Busca e categorias">
+  <div class="search" role="search">
+    <label class="search__label" for="product-search">Buscar presente</label>
+    <input class="search__input" id="product-search" type="search" placeholder="Digite o produto" autocomplete="off">
+  </div>
   <div class="nav__inner" id="nav-inner"></div>
 </nav>
 
 <main class="sections" id="sections"></main>
+<p class="empty-state" id="empty-state">Nenhum presente encontrado com esse termo.</p>
 
 <script>
   const SHOW_PRICES = false;
@@ -1290,6 +1363,13 @@ body::before {
     return BRL.format(p.minPrice) + ' – ' + BRL.format(p.maxPrice);
   }
 
+  function normalizeSearchText(value) {
+    return value
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
   const ARROW_SVG = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M5 12 h14 M13 6 l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   const grouped = PRODUCTS.reduce((acc, p) => {
@@ -1299,6 +1379,8 @@ body::before {
 
   const navInner = document.getElementById('nav-inner');
   const sectionsEl = document.getElementById('sections');
+  const productSearch = document.getElementById('product-search');
+  const emptyState = document.getElementById('empty-state');
 
   CATEGORY_ORDER.forEach(cat => {
     const items = grouped[cat.name];
@@ -1307,11 +1389,13 @@ body::before {
     const navLink = document.createElement('a');
     navLink.href = '#' + cat.slug;
     navLink.textContent = cat.short || cat.name;
+    navLink.dataset.section = cat.slug;
     navInner.appendChild(navLink);
 
     const section = document.createElement('section');
     section.className = 'section';
     section.id = cat.slug;
+    section.dataset.category = cat.name;
 
     const header = document.createElement('div');
     header.className = 'section__header';
@@ -1329,6 +1413,7 @@ body::before {
     items.forEach(p => {
       const article = document.createElement('article');
       article.className = 'card';
+      article.dataset.search = normalizeSearchText([p.name, p.category, p.marketplace].join(' '));
 
       const icon = document.createElement('div');
       icon.className = 'card__icon';
@@ -1394,6 +1479,28 @@ body::before {
   } else {
     lazyImages.forEach(loadImage);
   }
+
+  productSearch.addEventListener('input', () => {
+    const query = normalizeSearchText(productSearch.value.trim());
+    let totalMatches = 0;
+
+    document.querySelectorAll('.section').forEach(section => {
+      let sectionMatches = 0;
+
+      section.querySelectorAll('.card').forEach(card => {
+        const matches = !query || card.dataset.search.includes(query);
+        card.hidden = !matches;
+        if (matches) sectionMatches += 1;
+      });
+
+      section.hidden = sectionMatches === 0;
+      const navLink = navInner.querySelector('[data-section="' + section.id + '"]');
+      if (navLink) navLink.hidden = query && sectionMatches === 0;
+      totalMatches += sectionMatches;
+    });
+
+    emptyState.classList.toggle('is-visible', query && totalMatches === 0);
+  });
 </script>
 
 
